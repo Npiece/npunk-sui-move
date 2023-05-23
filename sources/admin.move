@@ -34,7 +34,7 @@ module npiece::admin {
     }
 
     // ===== Holders =====
-    entry fun is_holder<T>(self: &Npiece<T>, addr: address): bool {
+    public entry fun is_holder<T>(self: &Npiece<T>, addr: address): bool {
         col::is_holder(self, addr)
     }
 
@@ -63,7 +63,7 @@ module npiece::admin {
 
     // ===== Fee =====
     // publish new FeeChart object
-    entry fun publish_feetable<T: key, C: key+store>(
+    entry fun publish_feetable<T, C>(
         mint: u64,
         update_name: u64,
         update_bio: u64,
@@ -78,13 +78,22 @@ module npiece::admin {
     }
 
     // update the fee of corespond key in published FeeChart object
-    entry fun update_fee<T: key, C: key+store>(
-        chart: &mut FeeTable<T, C>,
+    entry fun update_fee<T, C>(
+        feetable: &mut FeeTable<T, C>,
         key: vector<u8>,
         value: u64,
         pub: &Publisher
     ) {
         col::assert_authority<T>(pub);
-        user::set_fee(chart, key, value);
+        user::set_fee(feetable, key, value);
+    }
+
+    entry fun take_profit<T, C>(
+        feetable: &mut FeeTable<T, C>,
+        pub: &Publisher,
+        ctx: &mut TxContext
+    ) {
+        col::assert_authority<T>(pub);
+        user::take_profit(feetable, ctx);
     }
 }

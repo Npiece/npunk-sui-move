@@ -1,11 +1,11 @@
 [package]
 name = "Npiece"
-version = "0.0.2"
+version = "0.1.0"
 authors = ["LoranceCall"]
 license = "MIT"
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "mainnet" }
 # Sui = { local = "../sui/crates/sui-framework/packages/sui-framework" }
 
 [addresses]

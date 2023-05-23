@@ -124,12 +124,11 @@ module npiece::nft {
         transfer::transfer(nft, recipient);
     }
 
-    // TODO: name and bio change
     public(friend) fun unbound_from_soul(nft: &mut Punk) {
         nft.soulbound = false;
     }
 
-    public(friend) fun bound_to_soul(nft: &mut Punk) {
+    public(friend) fun bind_to_soul(nft: &mut Punk) {
         nft.soulbound = true;
     }
 

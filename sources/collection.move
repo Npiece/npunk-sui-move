@@ -39,7 +39,7 @@ module npiece::collection {
     }
 
     // Version: this should be updated for each upgrading
-    const VERSION: u64 = 1;
+    const VERSION: u64 = 2;
     const DESCRIPTION: vector<u8> = b"Dive into the captivating pixel-art collection, representing your virtual identity, created by the Npiece community on the vibrant Sui network.";
 
     // Error code
@@ -285,6 +285,13 @@ module npiece::collection {
 
     public(friend) fun assert_authority<T>(pub: &Publisher) {
         assert!(package::from_package<T>(pub), ENotOwner);
+    }
+
+    entry fun migrate<T>(self: &mut Npiece<T>, pub: &Publisher) {
+        assert_authority<T>(pub);
+        assert!(self.version < VERSION, EWrongVersion);
+        
+        self.version = VERSION;
     }
 
     #[test]

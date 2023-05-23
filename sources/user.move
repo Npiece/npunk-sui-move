@@ -15,7 +15,7 @@ module npiece::user {
     friend npiece::admin;
 
     // FeeTable
-    struct FeeTable<phantom T, phantom C: key+store> has key {
+    struct FeeTable<phantom T, phantom C> has key {
         id: UID,
         mint: u64,
         update_name: u64,
@@ -50,7 +50,7 @@ module npiece::user {
     const EInvalidKey: u64 = 2;
 
     // ===== FeeTable =====
-    public(friend) fun new_feetable<T, C: key+store>(
+    public(friend) fun new_feetable<T, C>(
         mint: u64,
         update_name: u64,
         update_bio: u64,
@@ -75,7 +75,7 @@ module npiece::user {
         id
     }
 
-    public(friend) fun set_fee<T, C: key+store>(
+    public(friend) fun set_fee<T, C>(
         feetable: &mut FeeTable<T, C>,
         key: vector<u8>,
         value: u64
@@ -105,7 +105,20 @@ module npiece::user {
     }
 
     // ===== Payments =====
-    fun receive_payment<T, C: key+store>(feetable: &mut FeeTable<T, C>, payment: Coin<C>, key: vector<u8>, ctx: &mut TxContext) {
+    public(friend) fun take_profit<T, C>(feetable: &mut FeeTable<T, C>, ctx: &mut TxContext) {
+        let all_balance = balance::value(coin::balance(&feetable.balance));
+        let profit = &mut feetable.balance;
+        let balance = coin::balance_mut(profit);
+
+        let taken = coin::take(
+            balance, 
+            all_balance,
+            ctx
+        );
+        transfer::public_transfer(taken, tx_context::sender(ctx));
+    }
+
+    fun receive_payment<T, C>(feetable: &mut FeeTable<T, C>, payment: Coin<C>, key: vector<u8>, ctx: &mut TxContext) {
         assert_balance(feetable, key, &payment);
         let paid = coin::split(&mut payment, get_fee(feetable, key), ctx);
         coin::join(&mut feetable.balance, paid);
@@ -117,13 +130,13 @@ module npiece::user {
         };
     }
 
-    fun assert_balance<T, C: key+store>(feetable: &mut FeeTable<T, C>, key: vector<u8>, payment: &Coin<C>) {
+    fun assert_balance<T, C>(feetable: &mut FeeTable<T, C>, key: vector<u8>, payment: &Coin<C>) {
         let fee = get_fee(feetable, key);
         let bal = balance::value(coin::balance(payment));
         assert!(bal >= fee, EInsufficientBalance);
     }
 
-    fun get_fee<T, C: key+store>(feetable: &mut FeeTable<T, C>, key: vector<u8>): u64 {
+    fun get_fee<T, C>(feetable: &mut FeeTable<T, C>, key: vector<u8>): u64 {
         if (key == b"mint") {
             return feetable.mint
         } else if (key == b"update_name") {
@@ -138,10 +151,10 @@ module npiece::user {
     }
 
     // ==== shared function for user =====
-    entry fun mint<T, C: key+store>(
+    entry fun mint<T, C>(
         self: &mut Npiece<T>,
         feetable: &mut FeeTable<T, C>,
-        payment: Coin<C>, 
+        payment: Coin<C>,
         name: vector<u8>,
         bio: vector<u8>,
         clockobj: &Clock,
@@ -160,19 +173,58 @@ module npiece::user {
         punk::burn(nft, ctx);
     }
 
-    entry fun update_punk_name<C: key+store>(nft: &mut Punk, feetable: &mut FeeTable<Punk, C>, payment: Coin<C>, name: vector<u8>, ctx: &mut TxContext) {
+    entry fun update_punk_name<C>(nft: &mut Punk, feetable: &mut FeeTable<Punk, C>, payment: Coin<C>, name: vector<u8>, ctx: &mut TxContext) {
         receive_payment(feetable, payment, b"update_name", ctx);
         punk::set_name(nft, name);
     }
 
-    entry fun update_punk_bio<C: key+store>(nft: &mut Punk, feetable: &mut FeeTable<Punk, C>, payment: Coin<C>, bio: vector<u8>, ctx: &mut TxContext) {
+    entry fun update_punk_bio<C>(nft: &mut Punk, feetable: &mut FeeTable<Punk, C>, payment: Coin<C>, bio: vector<u8>, ctx: &mut TxContext) {
         receive_payment(feetable, payment, b"update_bio", ctx);
         punk::set_bio(nft, bio);
     }
 
-    entry fun update_punk_name_and_bio<C: key+store>(nft: &mut Punk, feetable: &mut FeeTable<Punk, C>, payment: Coin<C>, name: vector<u8>, bio: vector<u8>, ctx: &mut TxContext) {
+    entry fun update_punk_name_and_bio<C>(nft: &mut Punk, feetable: &mut FeeTable<Punk, C>, payment: Coin<C>, name: vector<u8>, bio: vector<u8>, ctx: &mut TxContext) {
         receive_payment(feetable, payment, b"update_both", ctx);
         punk::set_name(nft, name);
         punk::set_bio(nft, bio);
+    }
+
+    #[test]
+    fun test_feetable() {
+        use sui::test_scenario::{Self as ts, ctx};
+        use sui::sui::SUI;
+        use std::debug;
+
+        // create test addresses representing users
+        let admin = @0xABCD;
+
+        // first transaction to emulate module initialization
+        let scenario_val = ts::begin(admin);
+        let scenario = &mut scenario_val;
+        {
+            new_feetable<Punk, SUI>(
+                0u64, 
+                10u64, 
+                10u64, 
+                10u64, 
+                ctx(scenario)
+            );
+        };
+
+        let effect1 = ts::next_tx(scenario, admin);
+        {
+            debug::print(&ts::num_user_events(&effect1));
+            let feetable = ts::take_shared<FeeTable<Punk, SUI>>(scenario);
+            let minted = coin::mint_for_testing<SUI>(1000000000, ctx(scenario));
+            receive_payment(&mut feetable, minted, b"mint", ctx(scenario));
+            ts::return_shared(feetable);
+        };
+        let effect2 = ts::next_tx(scenario, admin);
+        {
+            debug::print(&ts::num_user_events(&effect2));
+            debug::print(&effect2);
+        };
+        
+        ts::end(scenario_val);
     }
 }
