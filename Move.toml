@@ -1,0 +1,14 @@
+[package]
+name = "Npiece"
+version = "0.0.2"
+authors = ["LoranceCall"]
+license = "MIT"
+published-at = "0x6cb3f91b410713730d4b68cff7487efad05f8c7a0e26b32e0db806caac022b51"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "testnet" }
+
+[addresses]
+npiece = "0x0"
+# npiece = "0x6cb3f91b410713730d4b68cff7487efad05f8c7a0e26b32e0db806caac022b51"
+sui =  "0000000000000000000000000000000000000000000000000000000000000002"
