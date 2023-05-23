@@ -1,0 +1,12 @@
+# build directory
+build/
+
+# locked
+.lock
+
+# log
+sui.log*
+
+# Environment files
+.env
+
